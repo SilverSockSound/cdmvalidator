@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CDMValidation.CLI/CDMValidation.CLI.csproj" />
+  <Project Path="CDMValidation.Core/CDMValidation.Core.csproj" />
+  <Project Path="CDMValidation.Tests/CDMValidation.Tests.csproj" />
+</Solution>
