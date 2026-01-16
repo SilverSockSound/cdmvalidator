@@ -9,7 +9,7 @@ namespace CDMValidation.Core.Validators;
 public static partial class ValidationHelpers
 {
     // Regex patterns for format validation
-    [GeneratedRegex(@"^[A-Z]{2}[A-Z0-9]{3}\d{7}$")]
+    [GeneratedRegex(@"^[a-zA-Z]{2}[a-zA-Z0-9]{3}\d{7}$")]
     private static partial Regex IsrcPattern();
 
     [GeneratedRegex(@"^T\d{10}$")]
