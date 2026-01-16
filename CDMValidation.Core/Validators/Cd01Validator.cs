@@ -157,7 +157,7 @@ public class Cd01Validator : IRecordValidator<Cd01Record>
                 LineNumber = record.LineNumber,
                 RecordType = "CD01.01",
                 FieldName = "ClaimBasis",
-                ErrorMessage = $"ClaimBasis must be one of: {string.Join(", ", AllowedValueSets.ClaimBasisValues)}. Found '{record.ClaimBasis}'",
+                ErrorMessage = $"ClaimBasis must be one of: {AllowedValueSets.ErrorMessages.ClaimBasisValuesList}. Found '{record.ClaimBasis}'",
                 Severity = ValidationSeverity.Error
             });
         }

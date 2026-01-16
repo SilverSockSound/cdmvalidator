@@ -72,7 +72,7 @@ public class CdmhValidator : IRecordValidator<CdmhRecord>
                 LineNumber = record.LineNumber,
                 RecordType = "CDMH.01",
                 FieldName = "Profile",
-                ErrorMessage = $"Profile must be one of: {string.Join(", ", AllowedValueSets.ProfileIds)}. Found '{record.Profile}'",
+                ErrorMessage = $"Profile must be one of: {AllowedValueSets.ErrorMessages.ProfileIdList}. Found '{record.Profile}'",
                 Severity = ValidationSeverity.Error
             });
         }

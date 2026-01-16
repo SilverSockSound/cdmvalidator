@@ -20,8 +20,14 @@ class Program
             // Create validation engine
             var engine = new CdmValidationEngine();
 
-            // Validate the file
-            var result = engine.ValidateFile(options.FilePath);
+            // Create progress reporter
+            var progressReporter = new ProgressReporter(isJsonOutput: options.OutputFormat == OutputFormat.Json);
+
+            // Validate the file with progress reporting
+            var result = engine.ValidateFile(options.FilePath, progressReporter);
+
+            // Complete progress reporting (clears progress bar)
+            progressReporter.Complete();
 
             // Output results
             if (options.OutputFormat == OutputFormat.Json)

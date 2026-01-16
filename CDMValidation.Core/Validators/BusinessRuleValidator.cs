@@ -8,20 +8,26 @@ namespace CDMValidation.Core.Validators;
 /// </summary>
 public class BusinessRuleValidator
 {
-    public List<ValidationError> Validate(CdmFileParser parser)
+    public List<ValidationError> Validate(CdmFileParser parser, IProgress<ValidationProgress>? progress = null)
     {
         var errors = new List<ValidationError>();
 
-        // Build a set of valid SummaryRecordIds
-        var validSummaryIds = new HashSet<string>(
-            parser.SummaryRecords.Select(s => s.SummaryRecordId),
-            StringComparer.OrdinalIgnoreCase
-        );
+        // Build lookup structures for O(1) access instead of O(N) linear searches
+        var summaryLookup = parser.SummaryRecords
+            .ToDictionary(s => s.SummaryRecordId, s => s, StringComparer.OrdinalIgnoreCase);
+
+        var detailsBySummaryId = parser.DetailRecords
+            .GroupBy(d => d.SummaryRecordId, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(g => g.Key, g => g.ToList(), StringComparer.OrdinalIgnoreCase);
+
+        // Calculate total validations: details validation + summary validation + blended share validation + 2 duplicate checks
+        int totalValidations = (parser.DetailRecords.Count * 2) + parser.SummaryRecords.Count + 2;
+        int currentValidation = 0;
 
         // Validate that each detail record references a valid summary record
         foreach (var detail in parser.DetailRecords)
         {
-            if (!validSummaryIds.Contains(detail.SummaryRecordId))
+            if (!summaryLookup.ContainsKey(detail.SummaryRecordId))
             {
                 errors.Add(new ValidationError
                 {
@@ -32,16 +38,23 @@ public class BusinessRuleValidator
                     Severity = ValidationSeverity.Error
                 });
             }
+
+            currentValidation++;
+            if (progress != null && currentValidation % 100 == 0)
+            {
+                progress.Report(new ValidationProgress
+                {
+                    Phase = "Business Rules",
+                    Current = currentValidation,
+                    Total = totalValidations
+                });
+            }
         }
 
-        // Validate TotalClaimedAmount for each summary record
+        // Validate TotalClaimedAmount for each summary record using pre-built lookup
         foreach (var summary in parser.SummaryRecords)
         {
-            var relatedDetails = parser.DetailRecords
-                .Where(d => string.Equals(d.SummaryRecordId, summary.SummaryRecordId, StringComparison.OrdinalIgnoreCase))
-                .ToList();
-
-            if (relatedDetails.Any())
+            if (detailsBySummaryId.TryGetValue(summary.SummaryRecordId, out var relatedDetails))
             {
                 decimal calculatedTotal = relatedDetails.Sum(d => d.ClaimedAmount);
 
@@ -59,14 +72,11 @@ public class BusinessRuleValidator
             }
         }
 
-        // Validate BlendedShareClaimedForMechAndPerf calculation
+        // Validate BlendedShareClaimedForMechAndPerf calculation using dictionary lookup
         foreach (var detail in parser.DetailRecords)
         {
-            // Find the corresponding summary record
-            var summary = parser.SummaryRecords.FirstOrDefault(s =>
-                string.Equals(s.SummaryRecordId, detail.SummaryRecordId, StringComparison.OrdinalIgnoreCase));
-
-            if (summary != null)
+            // Use dictionary lookup instead of FirstOrDefault (O(1) vs O(N))
+            if (summaryLookup.TryGetValue(detail.SummaryRecordId, out var summary))
             {
                 // Calculate expected blended share
                 // BlendedShare = (ShareMech * SplitMech/100) + (SharePerf * SplitPerf/100)
@@ -86,6 +96,17 @@ public class BusinessRuleValidator
                         Severity = ValidationSeverity.Error
                     });
                 }
+            }
+
+            currentValidation++;
+            if (progress != null && currentValidation % 100 == 0)
+            {
+                progress.Report(new ValidationProgress
+                {
+                    Phase = "Business Rules",
+                    Current = currentValidation,
+                    Total = totalValidations
+                });
             }
         }
 
@@ -107,6 +128,14 @@ public class BusinessRuleValidator
             });
         }
 
+        currentValidation++;
+        progress?.Report(new ValidationProgress
+        {
+            Phase = "Business Rules",
+            Current = currentValidation,
+            Total = totalValidations
+        });
+
         // Check for duplicate SummaryRecordIds
         var summaryIdGroups = parser.SummaryRecords
             .GroupBy(s => s.SummaryRecordId, StringComparer.OrdinalIgnoreCase)
@@ -124,6 +153,14 @@ public class BusinessRuleValidator
                 Severity = ValidationSeverity.Error
             });
         }
+
+        currentValidation++;
+        progress?.Report(new ValidationProgress
+        {
+            Phase = "Business Rules",
+            Current = currentValidation,
+            Total = totalValidations
+        });
 
         return errors;
     }

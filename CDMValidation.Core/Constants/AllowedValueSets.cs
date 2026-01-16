@@ -76,6 +76,19 @@ public static class AllowedValueSets
     };
 
     /// <summary>
+    /// Pre-generated error message suffixes for better performance.
+    /// </summary>
+    public static class ErrorMessages
+    {
+        public static readonly string ProfileIdList = string.Join(", ", ProfileIds);
+        public static readonly string CommercialModelTypesList = string.Join(", ", CommercialModelTypes);
+        public static readonly string UseTypesList = string.Join(", ", UseTypes);
+        public static readonly string ClaimBasisValuesList = string.Join(", ", ClaimBasisValues);
+        public static readonly string CurrencyCodesList = string.Join(", ", CurrencyCodes);
+        public static readonly string TerritoryCodesList = string.Join(", ", TerritoryCodes);
+    }
+
+    /// <summary>
     /// Validates if a value is in the allowed set.
     /// </summary>
     public static bool IsValidValue(HashSet<string> allowedSet, string? value)
