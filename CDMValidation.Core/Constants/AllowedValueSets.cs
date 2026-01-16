@@ -25,7 +25,8 @@ public static class AllowedValueSets
         "AdvertisementSupportedModel",
         "PayAsYouGoModel",
         "SubscriptionModel",
-        "FreeOfChargeModel"
+        "FreeOfChargeModel",
+        "Subscription"
     };
 
     /// <summary>
@@ -38,7 +39,8 @@ public static class AllowedValueSets
         "OnDemandStream",
         "NonInteractiveStream",
         "ConditionalDownload",
-        "LimitedDownload"
+        "LimitedDownload",
+        "ODStream"
     };
 
     /// <summary>

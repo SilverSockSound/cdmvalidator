@@ -139,15 +139,19 @@ public class Cd01Record
             record.GeneratedRevenueExcSalesTaxInCurrencyOfReporting = revReporting;
         if (fields.Length > 22 && !string.IsNullOrWhiteSpace(fields[22]) && decimal.TryParse(fields[22], out decimal revInvoicing))
             record.GeneratedRevenueExcSalesTaxInCurrencyOfInvoicing = revInvoicing;
+        if (fields.Length > 23 && decimal.TryParse(fields[23], out decimal claimedMech))
+            record.ClaimedAmountMechanical = claimedMech;
+        if (fields.Length > 24 && decimal.TryParse(fields[24], out decimal claimedPerf))
+            record.ClaimedAmountPerforming = claimedPerf;
 
         // Field 23 - Multiple tariff parameter types
-        if (fields.Length > 23 && !string.IsNullOrWhiteSpace(fields[23]))
-            record.TariffParameterTypes = fields[23].Split('|').ToList();
+        if (fields.Length > 25 && !string.IsNullOrWhiteSpace(fields[25]))
+            record.TariffParameterTypes = fields[25].Split('|').ToList();
 
         // Field 24 - Multiple tariff parameter values
-        if (fields.Length > 24 && !string.IsNullOrWhiteSpace(fields[24]))
+        if (fields.Length > 26 && !string.IsNullOrWhiteSpace(fields[26]))
         {
-            var values = fields[24].Split('|');
+            var values = fields[26].Split('|');
             foreach (var value in values)
             {
                 if (decimal.TryParse(value, out decimal tariffValue))
@@ -155,10 +159,8 @@ public class Cd01Record
             }
         }
 
-        if (fields.Length > 25 && decimal.TryParse(fields[25], out decimal claimedMech))
-            record.ClaimedAmountMechanical = claimedMech;
-        if (fields.Length > 26 && decimal.TryParse(fields[26], out decimal claimedPerf))
-            record.ClaimedAmountPerforming = claimedPerf;
+        
+        
         if (fields.Length > 27 && decimal.TryParse(fields[27], out decimal claimedAmt))
             record.ClaimedAmount = claimedAmt;
 
