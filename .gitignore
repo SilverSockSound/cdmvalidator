@@ -77,3 +77,4 @@ sample.cdm
 .claude/
 2a - CDM Licensor 1.txt
 *.tsv
+*.json

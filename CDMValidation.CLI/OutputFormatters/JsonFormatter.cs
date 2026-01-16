@@ -15,7 +15,9 @@ namespace CDMValidation.CLI.OutputFormatters;
 [JsonSerializable(typeof(ValidationError))]
 [JsonSerializable(typeof(ValidationWarning))]
 [JsonSerializable(typeof(ValidationStatistics))]
+[JsonSerializable(typeof(SummaryTotal))]
 [JsonSerializable(typeof(ValidationSeverity))]
+[JsonSerializable(typeof(Dictionary<string, SummaryTotal>))]
 internal partial class ValidationJsonContext : JsonSerializerContext
 {
 }

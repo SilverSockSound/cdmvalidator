@@ -38,17 +38,27 @@ public class FileStructureValidator
             });
         }
 
-        // Header must be the first record
-        if (parser.HeaderRecord != null && parser.HeaderRecord.LineNumber != 1)
+        // Header must be the first non-comment record
+        // (Comment lines before the header are allowed)
+        if (parser.HeaderRecord != null)
         {
-            errors.Add(new ValidationError
+            // Check if any data records appear before the header
+            bool hasRecordsBeforeHeader =
+                parser.SummaryRecords.Any(s => s.LineNumber < parser.HeaderRecord.LineNumber) ||
+                parser.DetailRecords.Any(d => d.LineNumber < parser.HeaderRecord.LineNumber) ||
+                (parser.FooterRecord != null && parser.FooterRecord.LineNumber < parser.HeaderRecord.LineNumber);
+
+            if (hasRecordsBeforeHeader)
             {
-                LineNumber = parser.HeaderRecord.LineNumber,
-                RecordType = "CDMH.01",
-                FieldName = "Position",
-                ErrorMessage = $"CDMH.01 header record must be the first line, found at line {parser.HeaderRecord.LineNumber}",
-                Severity = ValidationSeverity.Error
-            });
+                errors.Add(new ValidationError
+                {
+                    LineNumber = parser.HeaderRecord.LineNumber,
+                    RecordType = "CDMH.01",
+                    FieldName = "Position",
+                    ErrorMessage = $"CDMH.01 header record must appear before all other records (found at line {parser.HeaderRecord.LineNumber})",
+                    Severity = ValidationSeverity.Error
+                });
+            }
         }
 
         // Footer must be the last non-empty, non-comment record
@@ -104,6 +114,104 @@ public class FileStructureValidator
                 errors.Add(new ValidationError
                 {
                     LineNumber = parser.FooterRecord.LineNumber,
+                    RecordType = "SRFO",
+                    FieldName = "NumberOfSummaryRecords",
+                    ErrorMessage = $"NumberOfSummaryRecords ({expectedSummary}) does not match actual summary record count ({actualSummary})",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        return errors;
+    }
+
+    /// <summary>
+    /// Validates the overall structure of a CDM file using the lightweight validation index.
+    /// This method is used by the streaming validation engine for memory efficiency.
+    /// </summary>
+    public List<ValidationError> ValidateStreaming(ValidationIndex index)
+    {
+        var errors = new List<ValidationError>();
+
+        // File must have a header record
+        if (index.HeaderRecord == null)
+        {
+            errors.Add(new ValidationError
+            {
+                LineNumber = 0,
+                RecordType = "FILE",
+                FieldName = "HeaderRecord",
+                ErrorMessage = "File must contain a CDMH.01 header record",
+                Severity = ValidationSeverity.Error
+            });
+        }
+
+        // File must have a footer record
+        if (index.FooterRecord == null)
+        {
+            errors.Add(new ValidationError
+            {
+                LineNumber = 0,
+                RecordType = "FILE",
+                FieldName = "FooterRecord",
+                ErrorMessage = "File must contain an SRFO footer record",
+                Severity = ValidationSeverity.Error
+            });
+        }
+
+        // Header must be the first non-comment record
+        // (Comment lines before the header are allowed)
+        // Note: In streaming mode, we don't store all records, so we check against the index
+        // The index stores line numbers, and we verify no summary records were parsed before the header
+        if (index.HeaderRecord != null)
+        {
+            // Check if any summary records appear before the header
+            // (In streaming mode, detail records are not stored, but summaries are in the index)
+            bool hasRecordsBeforeHeader = index.Summaries.Values.Any(s => s.LineNumber < index.HeaderRecord.LineNumber);
+
+            if (hasRecordsBeforeHeader)
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = index.HeaderRecord.LineNumber,
+                    RecordType = "CDMH.01",
+                    FieldName = "Position",
+                    ErrorMessage = $"CDMH.01 header record must appear before all other records (found at line {index.HeaderRecord.LineNumber})",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        // Validate NumberOfLinesInReport matches actual line count
+        if (index.FooterRecord != null)
+        {
+            int expectedLines = index.FooterRecord.NumberOfLinesInReport;
+            int actualLines = index.TotalLines;
+
+            if (expectedLines != actualLines)
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = index.FooterRecord.LineNumber,
+                    RecordType = "SRFO",
+                    FieldName = "NumberOfLinesInReport",
+                    ErrorMessage = $"NumberOfLinesInReport ({expectedLines}) does not match actual line count ({actualLines})",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        // Validate NumberOfSummaryRecords matches actual count
+        if (index.FooterRecord != null)
+        {
+            int expectedSummary = index.FooterRecord.NumberOfSummaryRecords;
+            int actualSummary = index.SummaryRecordCount;
+
+            if (expectedSummary != actualSummary)
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = index.FooterRecord.LineNumber,
                     RecordType = "SRFO",
                     FieldName = "NumberOfSummaryRecords",
                     ErrorMessage = $"NumberOfSummaryRecords ({expectedSummary}) does not match actual summary record count ({actualSummary})",

@@ -20,8 +20,9 @@ class Program
             // Create validation engine
             var engine = new CdmValidationEngine();
 
-            // Create progress reporter
-            var progressReporter = new ProgressReporter(isJsonOutput: options.OutputFormat == OutputFormat.Json);
+            // Create progress reporter (use stderr for JSON and CSV to avoid corrupting output)
+            var useStderr = options.OutputFormat == OutputFormat.Json || options.OutputFormat == OutputFormat.Csv;
+            var progressReporter = new ProgressReporter(isJsonOutput: useStderr);
 
             // Validate the file with progress reporting
             var result = engine.ValidateFile(options.FilePath, progressReporter);
@@ -30,15 +31,22 @@ class Program
             progressReporter.Complete();
 
             // Output results
-            if (options.OutputFormat == OutputFormat.Json)
+            switch (options.OutputFormat)
             {
-                var jsonFormatter = new JsonFormatter();
-                jsonFormatter.PrintResult(result);
-            }
-            else
-            {
-                var consoleFormatter = new ConsoleFormatter();
-                consoleFormatter.PrintResult(result, options.Verbose);
+                case OutputFormat.Json:
+                    var jsonFormatter = new JsonFormatter();
+                    jsonFormatter.PrintResult(result);
+                    break;
+
+                case OutputFormat.Csv:
+                    var csvFormatter = new CsvFormatter();
+                    csvFormatter.PrintResult(result);
+                    break;
+
+                default: // Console
+                    var consoleFormatter = new ConsoleFormatter();
+                    consoleFormatter.PrintResult(result, options.Verbose);
+                    break;
             }
 
             // Return appropriate exit code
@@ -89,6 +97,11 @@ class Program
                     options.OutputFormat = OutputFormat.Json;
                     break;
 
+                case "-c":
+                case "--csv":
+                    options.OutputFormat = OutputFormat.Csv;
+                    break;
+
                 case "-f":
                 case "--format":
                     if (i + 1 < args.Length)
@@ -97,6 +110,7 @@ class Program
                         options.OutputFormat = args[i].ToLower() switch
                         {
                             "json" => OutputFormat.Json,
+                            "csv" => OutputFormat.Csv,
                             "console" => OutputFormat.Console,
                             _ => OutputFormat.Console
                         };
@@ -137,7 +151,8 @@ class Program
         Console.WriteLine("  -h, --help           Show this help message");
         Console.WriteLine("  -v, --verbose        Show detailed output including warnings");
         Console.WriteLine("  -j, --json           Output results in JSON format");
-        Console.WriteLine("  -f, --format <fmt>   Output format: 'console' or 'json' (default: console)");
+        Console.WriteLine("  -c, --csv            Output results in CSV format");
+        Console.WriteLine("  -f, --format <fmt>   Output format: 'console', 'json', or 'csv' (default: console)");
         Console.WriteLine();
         Console.WriteLine("Exit Codes:");
         Console.WriteLine("  0 - Validation passed (no errors)");
@@ -156,6 +171,7 @@ class Program
         Console.WriteLine("  CDMValidation.CLI sample.cdm");
         Console.WriteLine("  CDMValidation.CLI sample.cdm --verbose");
         Console.WriteLine("  CDMValidation.CLI sample.cdm --json > result.json");
+        Console.WriteLine("  CDMValidation.CLI sample.cdm --csv > result.csv");
         Console.WriteLine();
     }
 }
@@ -171,5 +187,6 @@ class CommandLineOptions
 enum OutputFormat
 {
     Console,
-    Json
+    Json,
+    Csv
 }

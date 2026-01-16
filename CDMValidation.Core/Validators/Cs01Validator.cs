@@ -350,6 +350,45 @@ public class Cs01Validator : IRecordValidator<Cs01Record>
             });
         }
 
+        // Validate backslash escaping in all string fields
+        ValidateBackslashEscaping(record, errors);
+
         return errors;
+    }
+
+    private void ValidateBackslashEscaping(Cs01Record record, List<ValidationError> errors)
+    {
+        // Check all string fields for proper backslash escaping
+        var fieldsToCheck = new Dictionary<string, string?>
+        {
+            { "SummaryRecordId", record.SummaryRecordId },
+            { "InvoiceReference", record.InvoiceReference },
+            { "RightsControllerName", record.RightsControllerName },
+            { "RightsControllerPartyId", record.RightsControllerPartyId },
+            { "DistributionChannel", record.DistributionChannel },
+            { "DistributionChannelDPID", record.DistributionChannelDPID },
+            { "CommercialModel", record.CommercialModel },
+            { "UseType", record.UseType },
+            { "Territory", record.Territory },
+            { "ServiceDescription", record.ServiceDescription },
+            { "CurrencyOfReporting", record.CurrencyOfReporting },
+            { "CurrencyOfInvoicing", record.CurrencyOfInvoicing },
+            { "ExchangeRateSource", record.ExchangeRateSource }
+        };
+
+        foreach (var field in fieldsToCheck)
+        {
+            if (!string.IsNullOrEmpty(field.Value) && !ValidationHelpers.AreBackslashesProperlyEscaped(field.Value))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CS01.01",
+                    FieldName = field.Key,
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in '{field.Key}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
     }
 }

@@ -46,6 +46,28 @@ public class ValidationStatistics
     public int SummaryRecords { get; set; }
     public int DetailRecords { get; set; }
     public int IgnoredRecords { get; set; }
+
+    /// <summary>
+    /// Total ClaimedAmount for the entire file (sum of all CS01 TotalClaimedAmount).
+    /// </summary>
+    public decimal TotalClaimedAmount { get; set; }
+
+    /// <summary>
+    /// Breakdown of totals per SummaryRecordId (ServiceDescription).
+    /// Key: SummaryRecordId, Value: Summary total information.
+    /// </summary>
+    public Dictionary<string, SummaryTotal> SummaryTotals { get; set; } = new();
+}
+
+/// <summary>
+/// Represents totals for a specific summary record (ServiceDescription).
+/// </summary>
+public class SummaryTotal
+{
+    public string SummaryRecordId { get; set; } = string.Empty;
+    public string? ServiceDescription { get; set; }
+    public decimal TotalClaimedAmount { get; set; }
+    public int DetailRecordCount { get; set; }
 }
 
 /// <summary>

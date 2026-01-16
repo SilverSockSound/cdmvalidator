@@ -270,6 +270,105 @@ public class Cd01Validator : IRecordValidator<Cd01Record>
             });
         }
 
+        // Validate backslash escaping in all string fields
+        ValidateBackslashEscaping(record, errors);
+
         return errors;
+    }
+
+    private void ValidateBackslashEscaping(Cd01Record record, List<ValidationError> errors)
+    {
+        // Check all string fields for proper backslash escaping
+        var fieldsToCheck = new Dictionary<string, string?>
+        {
+            { "ClaimId", record.ClaimId },
+            { "SummaryRecordId", record.SummaryRecordId },
+            { "DspResourceId", record.DspResourceId },
+            { "ResourceISRC", record.ResourceISRC },
+            { "ResourceTitle", record.ResourceTitle },
+            { "ResourceDisplayArtistName", record.ResourceDisplayArtistName },
+            { "ResourceDisplayArtistPartyId", record.ResourceDisplayArtistPartyId },
+            { "LicensorWorkId", record.LicensorWorkId },
+            { "MusicalWorkISWC", record.MusicalWorkISWC },
+            { "MusicalWorkTitle", record.MusicalWorkTitle },
+            { "ClaimBasis", record.ClaimBasis },
+            { "SalesTransactionId", record.SalesTransactionId }
+        };
+
+        foreach (var field in fieldsToCheck)
+        {
+            if (!string.IsNullOrEmpty(field.Value) && !ValidationHelpers.AreBackslashesProperlyEscaped(field.Value))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CD01.01",
+                    FieldName = field.Key,
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in '{field.Key}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        // Check list fields
+        foreach (var title in record.AlternativeMusicalWorkTitles)
+        {
+            if (!ValidationHelpers.AreBackslashesProperlyEscaped(title))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CD01.01",
+                    FieldName = "AlternativeMusicalWorkTitles",
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in alternative title: '{title}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        foreach (var name in record.MusicalWorkComposerAuthorNames)
+        {
+            if (!ValidationHelpers.AreBackslashesProperlyEscaped(name))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CD01.01",
+                    FieldName = "MusicalWorkComposerAuthorNames",
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in composer/author name: '{name}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        foreach (var partyId in record.MusicalWorkComposerAuthorPartyIds)
+        {
+            if (!ValidationHelpers.AreBackslashesProperlyEscaped(partyId))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CD01.01",
+                    FieldName = "MusicalWorkComposerAuthorPartyIds",
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in party ID: '{partyId}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
+
+        foreach (var type in record.TariffParameterTypes)
+        {
+            if (!ValidationHelpers.AreBackslashesProperlyEscaped(type))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CD01.01",
+                    FieldName = "TariffParameterTypes",
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in tariff parameter type: '{type}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
     }
 }

@@ -231,6 +231,45 @@ public class CdmhValidator : IRecordValidator<CdmhRecord>
             });
         }
 
+        // Validate backslash escaping in all string fields
+        ValidateBackslashEscaping(record, errors);
+
         return errors;
+    }
+
+    private void ValidateBackslashEscaping(CdmhRecord record, List<ValidationError> errors)
+    {
+        // Check all string fields for proper backslash escaping
+        var fieldsToCheck = new Dictionary<string, string?>
+        {
+            { "MessageVersion", record.MessageVersion },
+            { "MessageId", record.MessageId },
+            { "Profile", record.Profile },
+            { "ProfileVersion", record.ProfileVersion },
+            { "RelatedCdmMessageId", record.RelatedCdmMessageId },
+            { "SalesReportId", record.SalesReportId },
+            { "SenderPartyId", record.SenderPartyId },
+            { "SenderName", record.SenderName },
+            { "ServiceDescription", record.ServiceDescription },
+            { "RecipientPartyId", record.RecipientPartyId },
+            { "RecipientName", record.RecipientName },
+            { "SentOnBehalfOfPartyId", record.SentOnBehalfOfPartyId },
+            { "SentOnBehalfOfName", record.SentOnBehalfOfName }
+        };
+
+        foreach (var field in fieldsToCheck)
+        {
+            if (!string.IsNullOrEmpty(field.Value) && !ValidationHelpers.AreBackslashesProperlyEscaped(field.Value))
+            {
+                errors.Add(new ValidationError
+                {
+                    LineNumber = record.LineNumber,
+                    RecordType = "CDMH.01",
+                    FieldName = field.Key,
+                    ErrorMessage = $"Backslashes must be escaped as groups of 4 consecutive backslashes. Found improperly escaped backslash in '{field.Key}'",
+                    Severity = ValidationSeverity.Error
+                });
+            }
+        }
     }
 }

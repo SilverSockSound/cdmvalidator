@@ -157,4 +157,84 @@ public static partial class ValidationHelpers
     {
         return Math.Abs(value1 - value2) <= tolerance;
     }
+
+    /// <summary>
+    /// Validates that backslashes in a string are properly escaped as groups of 4.
+    /// According to CDM specification, a literal backslash must be escaped as four consecutive backslashes.
+    /// </summary>
+    /// <returns>True if all backslashes are in groups of 4, false otherwise.</returns>
+    public static bool AreBackslashesProperlyEscaped(string? value)
+    {
+        if (string.IsNullOrEmpty(value))
+            return true;
+
+        int consecutiveBackslashes = 0;
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] == '\\')
+            {
+                consecutiveBackslashes++;
+            }
+            else
+            {
+                // End of a backslash sequence - check if it's a multiple of 4
+                if (consecutiveBackslashes > 0 && consecutiveBackslashes % 4 != 0)
+                {
+                    return false;
+                }
+                consecutiveBackslashes = 0;
+            }
+        }
+
+        // Check final sequence if string ends with backslashes
+        if (consecutiveBackslashes > 0 && consecutiveBackslashes % 4 != 0)
+        {
+            return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Gets the positions of improperly escaped backslashes for error reporting.
+    /// </summary>
+    public static List<int> GetInvalidBackslashPositions(string? value)
+    {
+        var positions = new List<int>();
+
+        if (string.IsNullOrEmpty(value))
+            return positions;
+
+        int consecutiveBackslashes = 0;
+        int sequenceStart = -1;
+
+        for (int i = 0; i < value.Length; i++)
+        {
+            if (value[i] == '\\')
+            {
+                if (consecutiveBackslashes == 0)
+                    sequenceStart = i;
+                consecutiveBackslashes++;
+            }
+            else
+            {
+                // End of a backslash sequence
+                if (consecutiveBackslashes > 0 && consecutiveBackslashes % 4 != 0)
+                {
+                    positions.Add(sequenceStart);
+                }
+                consecutiveBackslashes = 0;
+                sequenceStart = -1;
+            }
+        }
+
+        // Check final sequence
+        if (consecutiveBackslashes > 0 && consecutiveBackslashes % 4 != 0)
+        {
+            positions.Add(sequenceStart);
+        }
+
+        return positions;
+    }
 }

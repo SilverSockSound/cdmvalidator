@@ -42,6 +42,31 @@ public class ConsoleFormatter
         Console.WriteLine($"  Ignored Records:   {result.Statistics.IgnoredRecords}");
         Console.WriteLine();
 
+        // Print financial totals
+        Console.WriteLine("Financial Totals:");
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine($"  File Total:        ${result.Statistics.TotalClaimedAmount:N2}");
+        Console.ResetColor();
+        Console.WriteLine();
+
+        if (result.Statistics.SummaryTotals.Any())
+        {
+            Console.WriteLine("  Summary Breakdown (by SummaryRecordId):");
+            var sortedSummaries = result.Statistics.SummaryTotals.Values
+                .OrderBy(s => s.SummaryRecordId);
+
+            foreach (var summary in sortedSummaries)
+            {
+                var serviceDesc = !string.IsNullOrWhiteSpace(summary.ServiceDescription)
+                    ? $" ({summary.ServiceDescription})"
+                    : "";
+                Console.WriteLine($"    {summary.SummaryRecordId}{serviceDesc}:");
+                Console.WriteLine($"      Amount: ${summary.TotalClaimedAmount:N2}");
+                Console.WriteLine($"      Details: {summary.DetailRecordCount} records");
+            }
+            Console.WriteLine();
+        }
+
         // Print error summary
         var errorCount = result.Errors.Count(e => e.Severity == ValidationSeverity.Error);
         var warningCount = result.Errors.Count(e => e.Severity == ValidationSeverity.Warning);
@@ -63,29 +88,44 @@ public class ConsoleFormatter
             Console.WriteLine("-".PadRight(80, '-'));
             Console.WriteLine();
 
-            // Group errors by record type
+            // Group errors by record type, then by field name
             var errorsByType = result.Errors
                 .GroupBy(e => e.RecordType)
-                .OrderBy(g => g.Key);
+                .OrderBy(g => GetRecordTypeOrder(g.Key));
 
-            foreach (var group in errorsByType)
+            foreach (var typeGroup in errorsByType)
             {
+                // Print record type header
                 Console.ForegroundColor = ConsoleColor.Cyan;
-                Console.WriteLine($"[{group.Key}]");
+                Console.WriteLine($"╔══ {typeGroup.Key} Records ══");
                 Console.ResetColor();
-
-                var sortedErrors = group.OrderBy(e => e.LineNumber).ThenBy(e => e.Severity);
-
-                foreach (var error in sortedErrors)
-                {
-                    // Skip warnings if not in verbose mode
-                    if (!verbose && error.Severity == ValidationSeverity.Warning)
-                        continue;
-
-                    PrintError(error);
-                }
-
                 Console.WriteLine();
+
+                // Group by field name within this record type
+                var errorsByField = typeGroup
+                    .GroupBy(e => string.IsNullOrWhiteSpace(e.FieldName) ? "(General)" : e.FieldName)
+                    .OrderBy(g => g.Key);
+
+                foreach (var fieldGroup in errorsByField)
+                {
+                    // Print field name subheader
+                    Console.ForegroundColor = ConsoleColor.DarkCyan;
+                    Console.WriteLine($"  ── {fieldGroup.Key} ──");
+                    Console.ResetColor();
+
+                    var sortedErrors = fieldGroup.OrderBy(e => e.LineNumber).ThenBy(e => e.Severity);
+
+                    foreach (var error in sortedErrors)
+                    {
+                        // Skip warnings if not in verbose mode
+                        if (!verbose && error.Severity == ValidationSeverity.Warning)
+                            continue;
+
+                        PrintError(error);
+                    }
+
+                    Console.WriteLine();
+                }
             }
         }
 
@@ -125,5 +165,21 @@ public class ConsoleFormatter
         }
 
         Console.WriteLine(error.ErrorMessage);
+    }
+
+    private static int GetRecordTypeOrder(string recordType)
+    {
+        return recordType switch
+        {
+            "FILE" => 0,
+            "CDMH.01" => 1,
+            "CDMH" => 1,
+            "CS01.01" => 2,
+            "CS01" => 2,
+            "CD01.01" => 3,
+            "CD01" => 3,
+            "SRFO" => 4,
+            _ => 99
+        };
     }
 }

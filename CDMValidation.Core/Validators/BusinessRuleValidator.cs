@@ -5,7 +5,13 @@ namespace CDMValidation.Core.Validators;
 
 /// <summary>
 /// Validates business rules that span multiple records.
+/// NOTE: This class is obsolete and kept only for backward compatibility.
+/// New code should use the streaming validation methods in CdmFileParser instead:
+/// - ParseAndIndexFile() for duplicate detection
+/// - ValidateCrossRecordRules() for CD01→CS01 references and BlendedShare calculation
+/// - ValidateSummaryTotals() for TotalClaimedAmount validation
 /// </summary>
+[Obsolete("This class is obsolete. Use streaming validation methods in CdmFileParser for memory efficiency.", false)]
 public class BusinessRuleValidator
 {
     public List<ValidationError> Validate(CdmFileParser parser, IProgress<ValidationProgress>? progress = null)
