@@ -5,21 +5,29 @@ using CDMValidation.Core.Models;
 namespace CDMValidation.CLI.OutputFormatters;
 
 /// <summary>
+/// JSON source generation context for AOT and trimming support.
+/// </summary>
+[JsonSourceGenerationOptions(
+    WriteIndented = true,
+    PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
+    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
+[JsonSerializable(typeof(ValidationResult))]
+[JsonSerializable(typeof(ValidationError))]
+[JsonSerializable(typeof(ValidationWarning))]
+[JsonSerializable(typeof(ValidationStatistics))]
+[JsonSerializable(typeof(ValidationSeverity))]
+internal partial class ValidationJsonContext : JsonSerializerContext
+{
+}
+
+/// <summary>
 /// Formats validation results as JSON.
 /// </summary>
 public class JsonFormatter
 {
-    private static readonly JsonSerializerOptions _options = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
-    };
-
     public string FormatResult(ValidationResult result)
     {
-        return JsonSerializer.Serialize(result, _options);
+        return JsonSerializer.Serialize(result, ValidationJsonContext.Default.ValidationResult);
     }
 
     public void PrintResult(ValidationResult result)

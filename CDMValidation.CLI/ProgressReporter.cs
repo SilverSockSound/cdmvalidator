@@ -31,12 +31,12 @@ public class ProgressReporter : IProgress<ValidationProgress>
 
     public void Report(ValidationProgress progress)
     {
-        // Don't show progress bar in JSON mode
-        if (_isJsonOutput)
-            return;
-
         lock (_lock)
         {
+            // Use stderr for JSON mode (so progress doesn't corrupt JSON output)
+            // Use stdout for console mode
+            var output = _isJsonOutput ? Console.Error : Console.Out;
+
             // Reset stopwatch when starting a new phase
             if (progress.Phase != _lastPhase)
             {
@@ -66,8 +66,8 @@ public class ProgressReporter : IProgress<ValidationProgress>
             }
 
             // Clear current line
-            Console.Write("\r" + new string(' ', Math.Min(_consoleWidth - 1, 120)));
-            Console.Write("\r");
+            output.Write("\r" + new string(' ', Math.Min(_consoleWidth - 1, 120)));
+            output.Write("\r");
 
             // Build progress bar
             int barWidth = Math.Min(40, (_consoleWidth - 60)); // Reserve space for text
@@ -101,18 +101,18 @@ public class ProgressReporter : IProgress<ValidationProgress>
 
             // Print progress
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.Write(bar);
+            output.Write(bar);
             Console.ResetColor();
-            Console.Write($" {percentage}");
+            output.Write($" {percentage}");
 
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.Write($" {phaseInfo}");
+            output.Write($" {phaseInfo}");
             Console.ResetColor();
 
             if (!string.IsNullOrEmpty(timeInfo))
             {
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.Write($" {timeInfo}");
+                output.Write($" {timeInfo}");
                 Console.ResetColor();
             }
         }
@@ -120,13 +120,11 @@ public class ProgressReporter : IProgress<ValidationProgress>
 
     public void Complete()
     {
-        if (!_isJsonOutput)
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                Console.WriteLine(); // Move to next line after progress bar
-                _stopwatch.Stop();
-            }
+            var output = _isJsonOutput ? Console.Error : Console.Out;
+            output.WriteLine(); // Move to next line after progress bar
+            _stopwatch.Stop();
         }
     }
 
